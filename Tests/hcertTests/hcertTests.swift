@@ -13,9 +13,13 @@ final class hcertTests: XCTestCase {
         let trust_json = "[ {  \"kid\" : \"DEFBBA3378B322F5\", \"coord\" : [ \"230ca0433313f4ef14ec0ab0477b241781d135ee09369507fcf44ca988ed09d6\",\"bf1bfe3d2bda606c841242b59c568d00e5c8dd114d223b2f5036d8c5bc68bf5d\" ] }, {  \"kid\" : \"FFFBBA3378B322F5\", \"coord\" : [ \"9999a0433313f4ef14ec0ab0477b241781d135ee09369507fcf44ca988ed09d6\",\"9999fe3d2bda606c841242b59c568d00e5c8dd114d223b2f5036d8c5bc68bf5d\" ] }, {  \"kid\" : \"CCCFBBA3378B322F5\", \"coord\" : [ \"7799a0433313f4ef14ec0ab0477b241781d135ee09369507fcf44ca988ed09d6\",\"9999fe3d2bda606c841242b59c568d00e5c8dd114d223b2f5036d8c5bc68bf5d\" ] } ,{  \"kid\" : \"AAFBBA3378B322F5\", \"coord\" : [ \"8899a0433313f4ef14ec0ab0477b241781d135ee09369507fcf44ca988ed09d6\",\"9999fe3d2bda606c841242b59c568d00e5c8dd114d223b2f5036d8c5bc68bf5d\" ] }, {\"kid\" : \"D4FF3B70590B18B7\",        \"coord\" : [           \"fe3f6d97ec0010e7a8b35492662b8a35c19804bbe453f461ec51e37f13a27552\", \"9a3e457c8a8fe69f9f776bef8e76095029f960d077f78238f284452332f785b0\"]     }  ]"
         
         do {
-            let decoder = try HCert(trustList: trust_json)
-        
+            //let decoderA = try HCert(x509PEMFile:"dsc-worker.pem")
+            //
+            let decoder = HCert()
+            try decoder.setJSONtrustlist(trustList: trust_json)
+            
             let result = try decoder.decodeHC1(barcode: barcodeNoZlib)
+            print("Correctly signed. Payload shown below:")
             print(result)
         } catch  {
             print("Drat: \(error)")

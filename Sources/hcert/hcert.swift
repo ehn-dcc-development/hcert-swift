@@ -2,9 +2,9 @@
 import CryptoKit
 import Foundation
 import OSLog
+
 import SwiftCBOR
-import GRPC
-import NIO
+import Compression
 
 extension String {
     func fromBase45()->Data {
@@ -48,15 +48,57 @@ extension StringProtocol {
 }
 
 @available(OSX 11.0, *)
-class HCert {
-    var trustList : String
-    var trust : [[String: Any]]
-    
-    init(trustList: String) throws {
-        self.trustList = trustList
-        trust = try (JSONSerialization.jsonObject(with: trustList.data(using: .utf8)!, options: [])
-                        as? [[String: Any]])!
+class HCert  {
+    struct KIDPK {
+        var kid : [uint8]
+        var pk : P256.Signing.PublicKey
     }
+    
+    var trust : [ KIDPK ]
+
+    init() {
+        self.trust = []
+    }
+
+    public func setJSONtrustlist(trustList: String) throws {
+        for case let elem  : Dictionary in try (JSONSerialization.jsonObject(with: trustList.data(using: .utf8)!, options: [])
+                                                    as? [[String: Any]])! {
+
+            let kid = (elem["kid"] as! String).hexaBytes
+
+            let x : [UInt8] = ((elem["coord"] as! Array<Any>)[0] as! String).hexaBytes
+            let y : [UInt8] = ((elem["coord"] as! Array<Any>)[1] as! String).hexaBytes
+            
+            // Create an uncompressed x963
+            //
+            var rawk : [UInt8] = [ 04 ]
+            rawk.append(contentsOf:x)
+            rawk.append(contentsOf:y)
+            if (rawk.count != 1+32+32) {
+                logger.info("Entry for \(kid) in the trust list malformed(ignored)")
+                continue;
+            }
+            
+            let pk = try! P256.Signing.PublicKey(x963Representation:rawk)
+            
+            // append rather than sets - as KIDs may repeat.
+            //
+            let entry : KIDPK = KIDPK( kid: kid, pk: pk )
+            trust.append(entry)
+        }
+    }
+    
+/*
+ private func getPublicKeysFromPubKeyPEM(pemPubKeyFile : String) {
+        let pk = try! String(contentsOfFile:pemPubKeyFile, encoding: .ascii)
+        self.trust =  [ {try! P256.Signing.PublicKey(pemRepresentation: pk)]
+    }
+    
+    private func getPublicKeysFromX509(pemX509File : String) {
+        let pk = try! String(contentsOfFile:pemX509File, encoding: .ascii)
+        self.trust = [try! P256.Signing.PublicKey(pemRepresentation: pk)]
+    }
+*/
     
     let logger = Logger()
     let COSE_TAG = UInt64(18)
@@ -68,30 +110,12 @@ class HCert {
     
     private func getPublicKeyByKid( kid : [UInt8]) -> [P256.Signing.PublicKey] {
         var pks : [P256.Signing.PublicKey] = []
-        
-        for case let elem : Dictionary in trust {
-            if (kid == (elem["kid"] as! String).hexaBytes) {
-                
-                let x : [UInt8] = ((elem["coord"] as! Array<Any>)[0] as! String).hexaBytes
-                let y : [UInt8] = ((elem["coord"] as! Array<Any>)[1] as! String).hexaBytes
-                
-                var rawk : [UInt8] = [ 04 ]
-                rawk.append(contentsOf:x)
-                rawk.append(contentsOf:y)
-                if (rawk.count != 1+32+32) {
-                    logger.info("Entry for \(kid) in the trust list malformed(ignored)")
-                    continue;
-                }
-                
-                pks.append(try! P256.Signing.PublicKey(x963Representation:rawk))
+        for i : KIDPK in self.trust {
+            if (i.kid == kid) {
+                pks.append(i.pk)
             }
         }
         return pks
-    }
-    
-    private func getPublicKeysFromFile(file : String) -> [P256.Signing.PublicKey] {
-        let pk = try! String(contentsOfFile:"dsc-worker.pub", encoding: .ascii)
-        return [try! P256.Signing.PublicKey(pemRepresentation: pk)]
     }
     
     public func decodeHC1(barcode : String) throws -> Any  {
@@ -108,13 +132,21 @@ class HCert {
         if (raw[0] == ZLIB_HDR) {
             // Decompress it.
             //
-            var compressed = ByteBufferAllocator().buffer(bytes: raw)
+            let sourceSize = raw.count
+            var sourceBuffer = Array<UInt8>(repeating: 0, count: sourceSize)
+            raw.copyBytes(to: &sourceBuffer, count: sourceSize)
+
+            let destinationSize = 32 * 1024
+            let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: destinationSize)
             
-            let inflate = Zlib.Inflate(format: Zlib.CompressionFormat.deflate,
-                                       limit: .absolute(8 * 1024))
-            var decompressed = ByteBufferAllocator().buffer(capacity: 32 * 1024)
-            let decompressedBytesWritten = try inflate.inflate(&compressed, into: &decompressed)
-            raw = decompressed.getBytes(at: 0, length: decompressedBytesWritten) ?? []
+            let decodedSize = compression_decode_buffer(destinationBuffer,
+                                                        destinationSize,
+                                                        &sourceBuffer,
+                                                        sourceSize,
+                                                        nil,
+                                                        COMPRESSION_ZLIB)
+
+            raw = Data(bytes: destinationBuffer, count: decodedSize)
         };
 
         // CBOR decode this (Really COSE wrapper AKA CWT)

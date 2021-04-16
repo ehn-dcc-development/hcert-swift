@@ -14,8 +14,7 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        .package(url: "git@github.com:unrelentingtech/SwiftCBOR.git", from: "0.4.3"),
-        .package(url: "https://github.com/grpc/grpc-swift.git", .branch("main"))
+        .package(url: "git@github.com:unrelentingtech/SwiftCBOR.git", .branch("master")),
     ],
     
     targets: [
@@ -23,9 +22,7 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "hcert",
-            dependencies: [.product(name: "GRPC", package: "grpc-swift"),
-                           .product(name: "SwiftCBOR", package: "SwiftCBOR")
-            ]),
+            dependencies: [.product(name: "SwiftCBOR", package: "SwiftCBOR")]),
         .testTarget(
             name: "hcertTests",
             dependencies: ["hcert"]),
