@@ -50,7 +50,7 @@ extension StringProtocol {
 @available(OSX 11.0, *)
 class HCert  {
     struct KIDPK {
-        var kid : [uint8]
+        var kid : [UInt8]
         var pk : P256.Signing.PublicKey
     }
     
