@@ -13,12 +13,12 @@ let package = Package(
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
             name: "hcert",
-            targets: ["hcert"]),
+            targets: ["hcert"])
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        .package(url: "git@github.com:unrelentingtech/SwiftCBOR.git", .branch("master")),
+        .package(url: "git@github.com:unrelentingtech/SwiftCBOR.git", .branch("master"))
     ],
     
     targets: [
@@ -29,6 +29,6 @@ let package = Package(
             dependencies: [.product(name: "SwiftCBOR", package: "SwiftCBOR")]),
         .testTarget(
             name: "hcertTests",
-            dependencies: ["hcert"]),
+            dependencies: ["hcert"])
     ]
 )
