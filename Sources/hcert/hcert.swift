@@ -40,14 +40,14 @@ class HCert {
 
             let kid = (elem["kid"] as! String).hexaBytes
 
-            let x: [UInt8] = ((elem["coord"] as! Array<Any>)[0] as! String).hexaBytes
-            let y: [UInt8] = ((elem["coord"] as! Array<Any>)[1] as! String).hexaBytes
+            let xCoord: [UInt8] = ((elem["coord"] as! Array<Any>)[0] as! String).hexaBytes
+            let yCoord: [UInt8] = ((elem["coord"] as! Array<Any>)[1] as! String).hexaBytes
             
             // Create an uncompressed x963
             //
             var rawk: [UInt8] = [ 04 ]
-            rawk.append(contentsOf: x)
-            rawk.append(contentsOf: y)
+            rawk.append(contentsOf: xCoord)
+            rawk.append(contentsOf: yCoord)
             if rawk.count != 1 + 32 + 32 {
                 logger.info("Entry for \(kid) in the trust list malformed(ignored)")
                 continue
@@ -72,8 +72,8 @@ class HCert {
     
     private func getPublicKeyByKid(kid: [UInt8]) -> [P256.Signing.PublicKey] {
         var pks: [P256.Signing.PublicKey] = []
-        for i: KIDPK in self.trust where i.kid == kid {
-            pks.append(i.pk)
+        for element: KIDPK in self.trust where element.kid == kid {
+            pks.append(element.pk)
         }
         return pks
     }
@@ -136,25 +136,25 @@ class HCert {
                     //
                     if case let CBOR.byteString(uhdr) = coseElements[1], let  unprotected = try? CBOR.decode(uhdr) {
                         if case let CBOR.map(map) = unprotected {
-                            if case let CBOR.byteString(k) = map[COSE_PHDR_KID]! {
-                                kid = k
+                            if case let CBOR.byteString(value) = map[COSE_PHDR_KID]! {
+                                kid = value
                             }
                         }
                     }
                     
                     if case let CBOR.map(map) = protected {
-                        let k = map[COSE_PHDR_SIG]!
+                        let sigValue = map[COSE_PHDR_SIG]!
                         
                         //  Single ECDSA Signature (ECDSA 256:-7 (shows as negativeInt(6))
                         //
-                        if k != COSE_PHDR_SIG_ES256 {
+                        if sigValue != COSE_PHDR_SIG_ES256 {
                             throw "Not a ECDSA NIST P-256 signature"
                         }
                         
                         // protect KID always wins from unprotected (as the latter is not signed.
                         //
-                        if case let CBOR.byteString(k) = map[COSE_PHDR_KID]! {
-                            kid = k
+                        if case let CBOR.byteString(kValue) = map[COSE_PHDR_KID]! {
+                            kid = kValue
                         }
                     }
                     
