@@ -18,7 +18,8 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        .package(url: "git@github.com:unrelentingtech/SwiftCBOR.git", .branch("master"))
+        .package(url: "git@github.com:unrelentingtech/SwiftCBOR.git", .branch("master")),
+        .package(url: "https://github.com/ehn-digital-green-development/base45-swift", .branch("main"))
     ],
     
     targets: [
@@ -26,7 +27,10 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "hcert",
-            dependencies: [.product(name: "SwiftCBOR", package: "SwiftCBOR")]),
+            dependencies: [
+                "base45-swift",
+                .product(name: "SwiftCBOR", package: "SwiftCBOR")
+            ]),
         .testTarget(
             name: "hcertTests",
             dependencies: ["hcert"])
