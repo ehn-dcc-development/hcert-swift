@@ -2,6 +2,15 @@
   "object": {
     "pins": [
       {
+        "package": "base45-swift",
+        "repositoryURL": "https://github.com/ehn-digital-green-development/base45-swift",
+        "state": {
+          "branch": "main",
+          "revision": "b2fd6c1ff48f6ea1d2877368afd326700427f261",
+          "version": null
+        }
+      },
+      {
         "package": "SwiftCBOR",
         "repositoryURL": "git@github.com:unrelentingtech/SwiftCBOR.git",
         "state": {
